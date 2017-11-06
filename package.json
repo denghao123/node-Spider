@@ -1,0 +1,18 @@
+{
+  "name": "node-spider",
+  "version": "1.0.0",
+  "description": "node spider demo",
+  "main": "index",
+  "scripts": {
+    "dev": "node ./src/spider.js"
+  },
+  "author": "DH",
+  "license": "ISC",
+  "devDependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "request": "^2.83.0"
+  },
+  "dependencies": {
+    "colors": "^1.1.2"
+  }
+}
