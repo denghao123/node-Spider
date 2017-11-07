@@ -6,3 +6,10 @@
 #### 步骤/steps:
     npm install
     npm run dev
+
+#### 演示/demo:
+![](./demo-cmd.jpg)
+
+![](./demo-image.jpg)
+
+![](./demo-txt.jpg)
