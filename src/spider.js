@@ -28,7 +28,7 @@ const libs = {
     })
   },
 
-  downloadImg(url, filename, callback) {
+  downloadImg(filename, url, callback) {
     if (url && url !== 'undefined') {
       this.fetch({
         url: url
@@ -36,55 +36,88 @@ const libs = {
         typeof callback === 'function' && callback();
       })
     }
+  },
+  getAbsUrl(src, basePath) {
+    var protocol = /^((ht|f)tps?)/.exec(basePath),
+      basePath = protocol ? basePath : 'http://' + basePath,
+      domain = /^\w+\:\/\/\/?[^\/]+/.exec(basePath)[0];
+    /*
+     * core
+     */
+    if (/^\/\/\/?/.test(src)) {
+      // eg.  //cdn.com/1.jpg
+      src = (protocol ? (protocol[0] + ':') : 'http:') + src;
+    } else if (!/^\w+\:\/\//.test(src)) {
+      if (/^\/+/.test(src)) {
+        // eg.  /1.jpg
+        src = domain + src;
+      } else if (/^\.\/+/.test(src)) {
+        // eg.  ./1.jpg
+        src = src.replace(/^\.\/+/, '');
+        src = basePath + '/' + src;
+      } else if (/^\.\.\/+/.test(src)) {
+        // eg.  ../1.jpg
+        src = this.basePathParse(src, basePath)
+      } else {
+        // eg.  1.jpg
+        src = basePath + '/' + src;
+      }
+    }
+    return src;
+  },
+  deleteLastFolder(str) {
+    var i = str.lastIndexOf("\/");
+    if (i < 10) {
+      return str;
+    } else {
+      return str.substring(0, i);
+    }
+  },
+
+  folderParse(path) {
+    var level = 0,
+      name = path.replace(/\.\.\//g, function(v) {
+        level++;
+        return '';
+      });
+    return {
+      level: level,
+      name: name
+    }
+  },
+
+  basePathParse(path, basePath) {
+    var folder = this.folderParse(path);
+    basePath = basePath.replace(/(.*)\/+$/g, '$1');
+    for (var i = 0; i < folder.level; i++) {
+      basePath = this.deleteLastFolder(basePath)
+    }
+    return basePath + '/' + folder.name;
   }
 }
 
-
 /*
- * eg. http://jiandan.net
+ * eg. http://denghao.me
  */
 
-
-let targetUrl = 'http://jiandan.net';
+let targetUrl = 'http://denghao.me';
 
 libs.fetch({
   url: targetUrl
 }, function(html) {
-  console.log('抓取中,请稍等~'.green);
-  
+  console.log((targetUrl+' 抓取中,请稍等~').green);
   let $ = cheerio.load(html);
-  let titles = $('#content h2 a');
-  let imgs = $('#content .thumbs_b img');
+  let titles = $('#main h3 a');
+  let imgs = $('#main .content img');
+
   ([].slice.call(titles)).forEach(function(v, i, arr) {
-    // 内页
-    let childUrl = v.children[0].parent.attribs.href;
-    if (childUrl) {
-      libs.fetch({
-        url: childUrl
-      }, function(childBody) {
-        let $child = cheerio.load(childBody, {
-          decodeEntities: false
-        });
-        let $a = $child('#content h1 a');
-        let title = $a[0].children[0].data;
-        let content = $child('#content .post').html();
-        let filename = './data/txt/' + title + '.txt';
-        content = content.match(/\<\/h1\>((.|\n)*)\<div class\=\"shang\"\>/)[1];
-        libs.downloadTxt(filename, content)
-      })
-    }
-
-    /*
-     * images
-     */
-    let originalUrl = imgs[i].attribs['data-original'];
-    if (originalUrl) {
-      let title = titles[i].children[0].data;
-      let url = originalUrl.replace(/!custom$/, '');
-      let image_url = 'http:' + url;
-      let filename = './data/image/' + libs.md5(url) + '.jpg';
-
-      libs.downloadImg(image_url, filename)
-    }
+    let title = titles[i].attribs.title;
+    let url = imgs[i].attribs.src;
+    let txtFileName = './data/txt/' + title + '.txt';
+    let imgFileName = './data/image/' + libs.md5(url) + '.jpg';
+    // txt
+    libs.downloadTxt(txtFileName, title);
+    // image
+    libs.downloadImg(imgFileName, libs.getAbsUrl(url, targetUrl));
   })
 })
