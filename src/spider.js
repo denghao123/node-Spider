@@ -3,6 +3,7 @@ const cheerio = require('cheerio');
 const request = require('request');
 const crypto = require('crypto');
 const colors = require('colors');
+const absUrl = require('abs-url');
 const libs = {
   md5(str) {
     return crypto.createHash('md5').update(str + '').digest('hex');
@@ -36,63 +37,6 @@ const libs = {
         typeof callback === 'function' && callback();
       })
     }
-  },
-  getAbsUrl(src, basePath) {
-    var protocol = /^((ht|f)tps?)/.exec(basePath),
-      basePath = protocol ? basePath : 'http://' + basePath,
-      domain = /^\w+\:\/\/\/?[^\/]+/.exec(basePath)[0];
-    /*
-     * core
-     */
-    if (/^\/\/\/?/.test(src)) {
-      // eg.  //cdn.com/1.jpg
-      src = (protocol ? (protocol[0] + ':') : 'http:') + src;
-    } else if (!/^\w+\:\/\//.test(src)) {
-      if (/^\/+/.test(src)) {
-        // eg.  /1.jpg
-        src = domain + src;
-      } else if (/^\.\/+/.test(src)) {
-        // eg.  ./1.jpg
-        src = src.replace(/^\.\/+/, '');
-        src = basePath + '/' + src;
-      } else if (/^\.\.\/+/.test(src)) {
-        // eg.  ../1.jpg
-        src = this.basePathParse(src, basePath)
-      } else {
-        // eg.  1.jpg
-        src = basePath + '/' + src;
-      }
-    }
-    return src;
-  },
-  deleteLastFolder(str) {
-    var i = str.lastIndexOf("\/");
-    if (i < 10) {
-      return str;
-    } else {
-      return str.substring(0, i);
-    }
-  },
-
-  folderParse(path) {
-    var level = 0,
-      name = path.replace(/\.\.\//g, function(v) {
-        level++;
-        return '';
-      });
-    return {
-      level: level,
-      name: name
-    }
-  },
-
-  basePathParse(path, basePath) {
-    var folder = this.folderParse(path);
-    basePath = basePath.replace(/(.*)\/+$/g, '$1');
-    for (var i = 0; i < folder.level; i++) {
-      basePath = this.deleteLastFolder(basePath)
-    }
-    return basePath + '/' + folder.name;
   }
 }
 
@@ -118,6 +62,6 @@ libs.fetch({
     // txt
     libs.downloadTxt(txtFileName, title);
     // image
-    libs.downloadImg(imgFileName, libs.getAbsUrl(url, targetUrl));
+    libs.downloadImg(imgFileName, absUrl(url, targetUrl));
   })
 })
